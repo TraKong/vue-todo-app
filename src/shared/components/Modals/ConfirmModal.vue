@@ -18,6 +18,3 @@ const props = defineProps<{
 }>()
 const emit = defineEmits(['close','confirm'])
 </script>
-
-<style>
-</style>

@@ -11,30 +11,18 @@
 
 <script setup lang="ts">
 import { inject } from 'vue';
-import type { Technologies } from '../utils/Technologies.Interface';
+import type { Technologies } from '@/shared/types/Technologies.Interface';
 
 const technologies  = <Technologies>inject('technologies');
 
 </script>
 
 <style scoped>
-.about .about-list {
-    padding: 2rem;
-    border-radius: 8px;
-    border: 1px solid rgba(98, 98, 98, 0.212);
-}
+.about .about-list { padding: 2rem; border-radius: 8px; border: 1px solid rgba(98, 98, 98, 0.212); }
 
-li {
-    list-style-type: circle;
-}
+li { list-style-type: circle; }
 
-ul {
-    line-height: 1.5;
-    margin-left: -40px;
-    list-style-position: inside;
-}
+ul { line-height: 1.5; margin-left: -40px; list-style-position: inside; }
 
-ul li:not(:last-child) {
-    margin-bottom: 20px;
-}
+ul li:not(:last-child) { margin-bottom: 20px; }
 </style>

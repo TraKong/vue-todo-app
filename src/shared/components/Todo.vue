@@ -30,9 +30,10 @@
 
 <script setup lang="ts">
 import { ref, defineAsyncComponent } from 'vue'
-import { useTodoStore } from '../stores/TodoStore';
-import type { Todo } from '../utils/Todo.Interface';
-import { vFocus } from '../directives/vFocus';
+import { vFocus } from '@/shared/directives/vFocus';
+import { useTodoStore } from '@/shared/stores/TodoStore';
+import type { Todo } from '@/shared/types/Todo.Interface';
+
 const Toast = defineAsyncComponent(() => import('@/shared/components/Modals/ToastModal.vue'))
 const ConfirmModal = defineAsyncComponent(() => import('@/shared/components/Modals/ConfirmModal.vue'))
 
@@ -42,9 +43,9 @@ const props = defineProps<{
 
 const TodoStore = useTodoStore()
 
-let showModal = ref(false)
-let isBeingEdited = ref(false)
-let newTodo = ref(props.todo.title)
+let showModal       = ref(false)
+let isBeingEdited   = ref(false)
+let newTodo         = ref(props.todo.title)
 
 const handleEditTodo = (id: string) => {
     isBeingEdited.value = !isBeingEdited.value
@@ -65,39 +66,16 @@ const handleDeleteTodo = (id: string)=>{
 </script>
 
 <style scoped>
-.todo {
-    padding: 10px 20px;
-    background: #fff;
-    margin-bottom: 20px;
-    border-radius: 4px;
-    box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.05);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+.todo { padding: 10px 20px; background: #fff; margin-bottom: 20px; border-radius: 4px; box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.05); display: flex; justify-content: space-between; align-items: center; }
 
-.completed {
-    background: rgb(0, 131, 4);
-    background: linear-gradient(90deg, rgba(0, 131, 4, 0.5522584033613445) 0%, rgba(255, 255, 255, 1) 100%);
-}
+.completed { background: rgb(0, 131, 4); background: linear-gradient(90deg, rgba(0, 131, 4, 0.5522584033613445) 0%, rgba(255, 255, 255, 1) 100%); }
 
 .todo h3,
-.todo .icons {
-    display: inline-block;
-}
+.todo .icons { display: inline-block; }
 
-.todo .icons {
-    text-align: right;
-}
+.todo .icons { text-align: right; }
 
-.todo i {
-    font-size: 1.4em;
-    margin-left: 6px;
-    cursor: pointer;
-    color: #bbb;
-}
+.todo i { font-size: 1.4em; margin-left: 6px; cursor: pointer; color: #bbb; }
 
-.active {
-    color: red !important;
-}
+.active { color: red !important; }
 </style>

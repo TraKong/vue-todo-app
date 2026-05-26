@@ -12,24 +12,15 @@
         </div>
     </header>
 </template>
-  
+
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
 import LanguageSwitcher from "@/shared/components/LanguageSwitcher.vue"
 
 </script>
-  
-<style>
-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 2rem;
-}
 
-header a {
-    color: inherit;
-    text-decoration: none;
-    font-size: 1.2rem;
-    margin: 0 0.5rem;
-}
+<style>
+header { display: flex; justify-content: space-between; margin-bottom: 2rem; }
+
+header a { color: inherit; text-decoration: none; font-size: 1.2rem; margin: 0 0.5rem; }
 </style>

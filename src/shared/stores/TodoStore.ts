@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
-import type { Todo } from "./../utils/Todo.Interface";
-import type { TodoStore } from "@/shared/utils/TodoStore.Interface";
+import type { Todo } from "@/shared/types/Todo.Interface";
+import type { TodoStore } from "@/shared/types/TodoStore.Interface";
 import { addNewTodo } from "../services/add_todo";
 import { deleteExistingTodo } from "../services/delete_todo";
 import { collection, getDocs } from "firebase/firestore";
@@ -9,9 +9,9 @@ import { updateCompleted, updateFav, updateTitle } from "../services/update_todo
 
 export const useTodoStore = defineStore("useTodoStore", {
   state: (): TodoStore => ({
-    todos: [],
-    isLoading: false,
-    showToast: false,
+    todos     : [],
+    isLoading : false,
+    showToast : false,
   }),
 
   getters: {
@@ -33,10 +33,10 @@ export const useTodoStore = defineStore("useTodoStore", {
 
       querySnapshot.forEach((res: any) => {
         const tempData = {
-          id: res.id,
-          title: res.data().title,
-          isFav: res.data().isFav,
-          isCompleted: res.data().isCompleted,
+          id          : res.id,
+          title       : res.data().title,
+          isFav       : res.data().isFav,
+          isCompleted : res.data().isCompleted,
         };
         resData.push(tempData);
       });
@@ -50,10 +50,10 @@ export const useTodoStore = defineStore("useTodoStore", {
 
     addTodo(newTodo: string) {
       const tempData = {
-        id: `${Math.floor(Math.random() * 100)}`,
-        title: newTodo,
-        isFav: false,
-        isCompleted: false,
+        id          : `${Math.floor(Math.random() * 100)}`,
+        title       : newTodo,
+        isFav       : false,
+        isCompleted : false,
       };
 
       addNewTodo(newTodo);
