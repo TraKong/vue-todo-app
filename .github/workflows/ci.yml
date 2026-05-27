@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   actions: read
+  workflows: write
 
 jobs:
   test:
@@ -71,6 +72,22 @@ jobs:
           fi
 
           for COMMIT_SHA in $COMMITS; do
+            COMMIT_AUTHOR=$(git show -s --format='%an' "$COMMIT_SHA")
+            COMMIT_SUBJECT=$(git show -s --format='%s' "$COMMIT_SHA")
+
+            # Avoid re-reverting previously auto-generated revert commits.
+            if [ "$COMMIT_AUTHOR" = "github-actions[bot]" ]; then
+              echo "Skipping bot commit: $COMMIT_SHA ($COMMIT_SUBJECT)"
+              continue
+            fi
+
+            case "$COMMIT_SUBJECT" in
+              Revert\ \"*\")
+                echo "Skipping revert commit: $COMMIT_SHA ($COMMIT_SUBJECT)"
+                continue
+                ;;
+            esac
+
             PARENTS=$(git rev-list --parents -n 1 "$COMMIT_SHA" | awk '{print NF-1}')
 
             # Skip root commit to avoid deleting repository contents.
