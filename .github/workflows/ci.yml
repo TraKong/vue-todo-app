@@ -81,10 +81,24 @@ jobs:
 
             if [ "$PARENTS" -gt 1 ]; then
               echo "Reverting merge commit: $COMMIT_SHA"
-              git revert --no-edit -m 1 "$COMMIT_SHA"
+              if ! git revert --no-edit -m 1 "$COMMIT_SHA"; then
+                if git diff --quiet && git diff --cached --quiet; then
+                  echo "Skipping already-neutralized merge commit: $COMMIT_SHA"
+                  continue
+                fi
+                echo "Revert failed with conflicts on merge commit: $COMMIT_SHA"
+                exit 1
+              fi
             else
               echo "Reverting commit: $COMMIT_SHA"
-              git revert --no-edit "$COMMIT_SHA"
+              if ! git revert --no-edit "$COMMIT_SHA"; then
+                if git diff --quiet && git diff --cached --quiet; then
+                  echo "Skipping already-neutralized commit: $COMMIT_SHA"
+                  continue
+                fi
+                echo "Revert failed with conflicts on commit: $COMMIT_SHA"
+                exit 1
+              fi
             fi
           done
 
