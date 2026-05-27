@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   test:
@@ -34,25 +35,57 @@ jobs:
 
       - name: Auto-revert failed push
         if: ${{ failure() && github.event_name == 'push' && github.actor != 'github-actions[bot]' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          TARGET_SHA="${{ github.sha }}"
           BRANCH="${GITHUB_REF#refs/heads/}"
-          PARENTS=$(git rev-list --parents -n 1 "$TARGET_SHA" | awk '{print NF-1}')
+          BEFORE_SHA="${{ github.event.before }}"
+          TARGET_SHA="${{ github.sha }}"
+          API_URL="${{ github.api_url }}"
+          REPO="${{ github.repository }}"
 
-          # Skip root commit to avoid deleting repository contents.
-          if [ "$PARENTS" -eq 0 ]; then
-            echo "Skipping auto-revert: root commit cannot be safely reverted."
+          RUNS_JSON=$(curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$API_URL/repos/$REPO/actions/workflows/ci.yml/runs?branch=$BRANCH&status=success&per_page=20")
+
+          LAST_GREEN_SHA=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[]? | select(.event == "push") | .head_sha' | head -n 1)
+
+          if [ -n "$LAST_GREEN_SHA" ] && [ "$LAST_GREEN_SHA" != "null" ] && [ "$LAST_GREEN_SHA" != "$TARGET_SHA" ]; then
+            echo "Last green SHA: $LAST_GREEN_SHA"
+            COMMITS=$(git rev-list "$LAST_GREEN_SHA..$TARGET_SHA")
+          elif [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "No valid last green SHA. Falling back to current target commit."
+            COMMITS="$TARGET_SHA"
+          else
+            echo "No valid last green SHA. Falling back to push range."
+            COMMITS=$(git rev-list "$BEFORE_SHA..$TARGET_SHA")
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits found to rollback."
             exit 0
           fi
 
-          # Keep behavior predictable: only auto-revert non-merge commits.
-          if [ "$PARENTS" -gt 1 ]; then
-            echo "Skipping auto-revert: merge commit detected ($TARGET_SHA)."
-            exit 0
-          fi
+          for COMMIT_SHA in $COMMITS; do
+            PARENTS=$(git rev-list --parents -n 1 "$COMMIT_SHA" | awk '{print NF-1}')
 
-          git revert --no-edit "$TARGET_SHA"
+            # Skip root commit to avoid deleting repository contents.
+            if [ "$PARENTS" -eq 0 ]; then
+              echo "Skipping root commit: $COMMIT_SHA"
+              continue
+            fi
+
+            if [ "$PARENTS" -gt 1 ]; then
+              echo "Reverting merge commit: $COMMIT_SHA"
+              git revert --no-edit -m 1 "$COMMIT_SHA"
+            else
+              echo "Reverting commit: $COMMIT_SHA"
+              git revert --no-edit "$COMMIT_SHA"
+            fi
+          done
+
           git push origin "HEAD:$BRANCH"
