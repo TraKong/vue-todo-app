@@ -9,7 +9,6 @@ on:
 permissions:
   contents: write
   actions: read
-  workflows: write
 
 jobs:
   test:
@@ -98,25 +97,37 @@ jobs:
 
             if [ "$PARENTS" -gt 1 ]; then
               echo "Reverting merge commit: $COMMIT_SHA"
-              if ! git revert --no-edit -m 1 "$COMMIT_SHA"; then
+              if ! git revert --no-commit -m 1 "$COMMIT_SHA"; then
                 if git diff --quiet && git diff --cached --quiet; then
                   echo "Skipping already-neutralized merge commit: $COMMIT_SHA"
                   continue
                 fi
                 echo "Revert failed with conflicts on merge commit: $COMMIT_SHA"
+                git revert --abort || true
                 exit 1
               fi
             else
               echo "Reverting commit: $COMMIT_SHA"
-              if ! git revert --no-edit "$COMMIT_SHA"; then
+              if ! git revert --no-commit "$COMMIT_SHA"; then
                 if git diff --quiet && git diff --cached --quiet; then
                   echo "Skipping already-neutralized commit: $COMMIT_SHA"
                   continue
                 fi
                 echo "Revert failed with conflicts on commit: $COMMIT_SHA"
+                git revert --abort || true
                 exit 1
               fi
             fi
+
+            # GitHub App tokens cannot update workflow files; drop those changes.
+            git restore --staged --worktree .github/workflows || true
+
+            if git diff --quiet && git diff --cached --quiet; then
+              echo "No non-workflow changes left after revert: $COMMIT_SHA"
+              continue
+            fi
+
+            git commit -m "Revert \"$(git show -s --format='%s' "$COMMIT_SHA")\""
           done
 
           git push origin "HEAD:$BRANCH"
