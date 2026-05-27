@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [master, main]
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -25,3 +28,18 @@ jobs:
 
       - name: Run unit tests
         run: npm test
+
+      - name: Auto-revert failed push
+        if: ${{ failure() && github.event_name == 'push' && github.actor != 'github-actions[bot]' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          PARENTS=$(git rev-list --parents -n 1 HEAD | awk '{print NF-1}')
+          if [ "$PARENTS" -gt 1 ]; then
+            git revert -m 1 --no-edit HEAD
+          else
+            git revert --no-edit HEAD
+          fi
+
+          git push
