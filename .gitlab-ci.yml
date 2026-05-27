@@ -1,0 +1,68 @@
+stages:
+  - test
+  - recover
+
+default:
+  image: node:20
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+
+test:
+  stage: test
+  script:
+    - npm ci
+    - npm test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+auto_revert_failed_push:
+  stage: recover
+  image: alpine:3.20
+  before_script:
+    - apk add --no-cache git bash
+  script:
+    - |
+      set -euo pipefail
+
+      # Optional loop protection: set CI_BOT_USERNAME in CI/CD variables.
+      if [ -n "${CI_BOT_USERNAME:-}" ] && [ "${GITLAB_USER_LOGIN:-}" = "${CI_BOT_USERNAME}" ]; then
+        echo "Skipping auto-revert: pipeline triggered by bot user (${GITLAB_USER_LOGIN})."
+        exit 0
+      fi
+
+      if [ -z "${GITLAB_PUSH_TOKEN:-}" ]; then
+        echo "Skipping auto-revert: GITLAB_PUSH_TOKEN is not configured."
+        exit 0
+      fi
+
+      TARGET_SHA="${CI_COMMIT_SHA}"
+      BRANCH="${CI_COMMIT_REF_NAME}"
+      PARENTS="$(git rev-list --parents -n 1 "${TARGET_SHA}" | awk '{print NF-1}')"
+
+      # Skip root commit to avoid deleting repository contents.
+      if [ "${PARENTS}" -eq 0 ]; then
+        echo "Skipping auto-revert: root commit cannot be safely reverted."
+        exit 0
+      fi
+
+      # Keep behavior predictable: only auto-revert non-merge commits.
+      if [ "${PARENTS}" -gt 1 ]; then
+        echo "Skipping auto-revert: merge commit detected (${TARGET_SHA})."
+        exit 0
+      fi
+
+      git config user.name "${CI_BOT_NAME:-gitlab-ci-bot}"
+      git config user.email "${CI_BOT_EMAIL:-gitlab-ci-bot@example.com}"
+      git remote set-url origin "https://oauth2:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+
+      git revert --no-edit "${TARGET_SHA}"
+      git push origin "HEAD:${BRANCH}"
+  when: on_failure
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
