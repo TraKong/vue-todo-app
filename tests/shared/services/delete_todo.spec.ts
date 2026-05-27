@@ -20,7 +20,7 @@ describe("deleteExistingTodo", () => {
   });
 
   it("deletes the todo document for the given id", async () => {
-    await deleteExistingTodo("todo-123");
+    await deleteExistingTodo("todo-123 892374");
 
     expect(doc).toHaveBeenCalledWith(db, "todos", "todo-123");
     expect(deleteDoc).toHaveBeenCalledWith("todo-doc-ref");
