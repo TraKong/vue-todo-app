@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -35,11 +38,21 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          PARENTS=$(git rev-list --parents -n 1 HEAD | awk '{print NF-1}')
-          if [ "$PARENTS" -gt 1 ]; then
-            git revert -m 1 --no-edit HEAD
-          else
-            git revert --no-edit HEAD
+          TARGET_SHA="${{ github.sha }}"
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          PARENTS=$(git rev-list --parents -n 1 "$TARGET_SHA" | awk '{print NF-1}')
+
+          # Skip root commit to avoid deleting repository contents.
+          if [ "$PARENTS" -eq 0 ]; then
+            echo "Skipping auto-revert: root commit cannot be safely reverted."
+            exit 0
           fi
 
-          git push
+          # Keep behavior predictable: only auto-revert non-merge commits.
+          if [ "$PARENTS" -gt 1 ]; then
+            echo "Skipping auto-revert: merge commit detected ($TARGET_SHA)."
+            exit 0
+          fi
+
+          git revert --no-edit "$TARGET_SHA"
+          git push origin "HEAD:$BRANCH"
