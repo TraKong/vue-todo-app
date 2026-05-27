@@ -24,7 +24,7 @@ describe("addNewTodo", () => {
 
     expect(collection).toHaveBeenCalledWith(db, "todos");
     expect(addDoc).toHaveBeenCalledWith("todos-collection", {
-      title: "Buy groceries 1234",
+      title: "Buy groceries",
       isFav: false,
       isCompleted: false,
     });
