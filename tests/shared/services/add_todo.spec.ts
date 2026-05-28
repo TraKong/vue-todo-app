@@ -20,7 +20,7 @@ describe("addNewTodo", () => {
   });
 
   it("adds a document to the todos collection with the given title", async () => {
-    await addNewTodo("Buy groceries test");
+    await addNewTodo("Buy groceries");
 
     expect(collection).toHaveBeenCalledWith(db, "todos");
     expect(addDoc).toHaveBeenCalledWith("todos-collection", {
