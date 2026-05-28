@@ -73,6 +73,7 @@ jobs:
           for COMMIT_SHA in $COMMITS; do
             COMMIT_AUTHOR=$(git show -s --format='%an' "$COMMIT_SHA")
             COMMIT_SUBJECT=$(git show -s --format='%s' "$COMMIT_SHA")
+            NON_WORKFLOW_COUNT=$(git show --name-only --pretty='' "$COMMIT_SHA" | awk '!/^\.github\/workflows\// && NF {count++} END {print count+0}')
 
             # Avoid re-reverting previously auto-generated revert commits.
             if [ "$COMMIT_AUTHOR" = "github-actions[bot]" ]; then
@@ -87,6 +88,11 @@ jobs:
                 ;;
             esac
 
+            if [ "$NON_WORKFLOW_COUNT" -eq 0 ]; then
+              echo "Skipping workflow-only commit: $COMMIT_SHA ($COMMIT_SUBJECT)"
+              continue
+            fi
+
             PARENTS=$(git rev-list --parents -n 1 "$COMMIT_SHA" | awk '{print NF-1}')
 
             # Skip root commit to avoid deleting repository contents.
@@ -97,7 +103,7 @@ jobs:
 
             if [ "$PARENTS" -gt 1 ]; then
               echo "Reverting merge commit: $COMMIT_SHA"
-              if ! git revert --no-commit -m 1 "$COMMIT_SHA"; then
+              if ! git revert --no-commit -X ours -m 1 "$COMMIT_SHA"; then
                 if git diff --quiet && git diff --cached --quiet; then
                   echo "Skipping already-neutralized merge commit: $COMMIT_SHA"
                   continue
@@ -108,7 +114,7 @@ jobs:
               fi
             else
               echo "Reverting commit: $COMMIT_SHA"
-              if ! git revert --no-commit "$COMMIT_SHA"; then
+              if ! git revert --no-commit -X ours "$COMMIT_SHA"; then
                 if git diff --quiet && git diff --cached --quiet; then
                   echo "Skipping already-neutralized commit: $COMMIT_SHA"
                   continue
